@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CGAL Crawler Control - CGAL GitHub Crawler</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .status-card { transition: all 0.3s ease; }
+        .status-running { border-left: 4px solid #28a745; }
+        .status-stopped { border-left: 4px solid #dc3545; }
+        .status-paused { border-left: 4px solid #ffc107; }
+        .progress-container { min-height: 20px; }
+        .config-section { background-color: #f8f9fa; border-radius: 8px; }
+        .rate-limit-indicator { font-size: 0.9em; }
+        .rate-limit-ok { color: #28a745; }
+        .rate-limit-warning { color: #ffc107; }
+        .rate-limit-danger { color: #dc3545; }
+        .log-output { 
+            background-color: #1e1e1e; 
+            color: #d4d4d4; 
+            font-family: 'Courier New', monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-search me-2"></i>CGAL Crawler
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Dashboard</a>
+                <a class="nav-link active" href="/crawler">Crawler Control</a>
+                <a class="nav-link" href="/repositories">Repositories</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-cogs me-2"></i>Crawler Control Panel
+                </h1>
+            </div>
+        </div>
+
+        <!-- Status Overview -->
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <div class="card status-card" id="statusCard">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h5 class="card-title mb-1">
+                                    <i class="fas fa-circle me-2" id="statusIndicator"></i>
+                                    Crawler Status: <span id="crawlerStatus">Stopped</span>
+                                </h5>
+                                <p class="card-text text-muted mb-0">
+                                    <span id="statusDescription">Ready to start crawling</span>
+                                </p>
+                            </div>
+                            <div class="col-md-6 text-md-end">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-success" id="startBtn">
+                                        <i class="fas fa-play me-1"></i>Start
+                                    </button>
+                                    <button type="button" class="btn btn-warning" id="pauseBtn" disabled>
+                                        <i class="fas fa-pause me-1"></i>Pause
+                                    </button>
+                                    <button type="button" class="btn btn-danger" id="stopBtn" disabled>
+                                        <i class="fas fa-stop me-1"></i>Stop
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">GitHub API Rate Limit</h6>
+                        <div class="rate-limit-indicator" id="rateLimitStatus">
+                            <i class="fas fa-clock me-1"></i>
+                            <span id="rateLimitText">Checking...</span>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            <span id="rateLimitRemaining">-</span> requests remaining
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress and Statistics -->
+        <div class="row mb-4" id="progressSection" style="display: none;">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Crawling Progress</h6>
+                        <div class="progress-container mb-3">
+                            <div class="progress mb-2">
+                                <div class="progress-bar" id="repositoryProgress" style="width: 0%"></div>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-3">
+                                    <div class="fw-bold text-primary" id="reposFound">0</div>
+                                    <small class="text-muted">Repositories Found</small>
+                                </div>
+                                <div class="col-3">
+                                    <div class="fw-bold text-success" id="filesAnalyzed">0</div>
+                                    <small class="text-muted">Files Analyzed</small>
+                                </div>
+                                <div class="col-3">
+                                    <div class="fw-bold text-info" id="cgalFilesFound">0</div>
+                                    <small class="text-muted">CGAL Files Found</small>
+                                </div>
+                                <div class="col-3">
+                                    <div class="fw-bold text-warning" id="requestsMade">0</div>
+                                    <small class="text-muted">API Requests</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <small class="text-muted">
+                                Started: <span id="crawlStartTime">-</span> | 
+                                Estimated completion: <span id="estimatedCompletion">-</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration -->
+        <div class="row mb-4">
+            <div class="col-lg-6">
+                <div class="card config-section">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-sliders-h me-2"></i>Crawler Configuration
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="configForm">
+                            <div class="mb-3">
+                                <label for="maxRepos" class="form-label">Maximum Repositories</label>
+                                <input type="number" class="form-control" id="maxRepos" value="50" min="1" max="1000">
+                                <div class="form-text">Maximum number of repositories to analyze</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="maxFiles" class="form-label">Files per Repository</label>
+                                <input type="number" class="form-control" id="maxFiles" value="20" min="1" max="100">
+                                <div class="form-text">Maximum files to analyze per repository</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="searchDelay" class="form-label">Search Delay (seconds)</label>
+                                <input type="number" class="form-control" id="searchDelay" value="6" min="1" max="60">
+                                <div class="form-text">Delay between API requests to respect rate limits</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="customQuery" class="form-label">Custom Search Query</label>
+                                <input type="text" class="form-control" id="customQuery" placeholder="e.g., CGAL::Point_2 language:cpp">
+                                <div class="form-text">Optional: Custom GitHub code search query</div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-list me-2"></i>CGAL Pattern Detection
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6 class="text-primary">Active Patterns:</h6>
+                            <div class="d-flex flex-wrap gap-1" id="patternTags">
+                                <span class="badge bg-secondary">Header includes</span>
+                                <span class="badge bg-secondary">Namespace usage</span>
+                                <span class="badge bg-secondary">Type definitions</span>
+                                <span class="badge bg-secondary">Template instantiation</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <h6 class="text-primary">Confidence Threshold:</h6>
+                            <div class="d-flex align-items-center">
+                                <input type="range" class="form-range me-3" id="confidenceThreshold" min="0" max="100" value="60">
+                                <span class="badge bg-info" id="confidenceValue">60%</span>
+                            </div>
+                            <div class="form-text">Minimum confidence level for CGAL detection</div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="analyzeComments" checked>
+                            <label class="form-check-label" for="analyzeComments">
+                                Analyze comments for CGAL references
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Log Output -->
+        <div class="row mb-4" id="logSection" style="display: none;">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-terminal me-2"></i>Live Log Output
+                        </h6>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary" id="clearLogBtn">
+                                <i class="fas fa-trash me-1"></i>Clear
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" id="downloadLogBtn">
+                                <i class="fas fa-download me-1"></i>Download
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <pre class="log-output p-3 mb-0" id="logOutput">Waiting for crawler to start...</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Results -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-clock me-2"></i>Recent Crawl Sessions
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Session ID</th>
+                                        <th>Start Time</th>
+                                        <th>Duration</th>
+                                        <th>Repositories</th>
+                                        <th>CGAL Files</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sessionHistory">
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted">No previous crawl sessions</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Crawler control JavaScript
+        let crawlerActive = false;
+        let updateInterval;
+
+        // DOM elements
+        const statusCard = document.getElementById('statusCard');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const crawlerStatus = document.getElementById('crawlerStatus');
+        const statusDescription = document.getElementById('statusDescription');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const progressSection = document.getElementById('progressSection');
+        const logSection = document.getElementById('logSection');
+        const logOutput = document.getElementById('logOutput');
+
+        // Configuration form
+        const configForm = document.getElementById('configForm');
+        const confidenceThreshold = document.getElementById('confidenceThreshold');
+        const confidenceValue = document.getElementById('confidenceValue');
+
+        // Event listeners
+        startBtn.addEventListener('click', startCrawler);
+        pauseBtn.addEventListener('click', pauseCrawler);
+        stopBtn.addEventListener('click', stopCrawler);
+        confidenceThreshold.addEventListener('input', updateConfidenceDisplay);
+        document.getElementById('clearLogBtn').addEventListener('click', clearLog);
+
+        // Update confidence display
+        function updateConfidenceDisplay() {
+            confidenceValue.textContent = confidenceThreshold.value + '%';
+        }
+
+        // Crawler control functions
+        function startCrawler() {
+            crawlerActive = true;
+            updateCrawlerStatus('Running', 'Searching GitHub for CGAL repositories...', 'status-running');
+            
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            stopBtn.disabled = false;
+            
+            progressSection.style.display = 'block';
+            logSection.style.display = 'block';
+            
+            // Start progress updates
+            updateInterval = setInterval(updateProgress, 2000);
+            
+            // Send start request to backend
+            fetch('/api/crawler/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(getConfiguration())
+            });
+        }
+
+        function pauseCrawler() {
+            updateCrawlerStatus('Paused', 'Crawler paused by user', 'status-paused');
+            pauseBtn.disabled = true;
+            startBtn.disabled = false;
+            
+            fetch('/api/crawler/pause', {method: 'POST'});
+        }
+
+        function stopCrawler() {
+            crawlerActive = false;
+            updateCrawlerStatus('Stopped', 'Crawler stopped by user', 'status-stopped');
+            
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            stopBtn.disabled = true;
+            
+            clearInterval(updateInterval);
+            
+            fetch('/api/crawler/stop', {method: 'POST'});
+        }
+
+        function updateCrawlerStatus(status, description, statusClass) {
+            crawlerStatus.textContent = status;
+            statusDescription.textContent = description;
+            statusCard.className = 'card status-card ' + statusClass;
+            
+            // Update indicator color
+            statusIndicator.className = 'fas fa-circle me-2';
+            if (status === 'Running') statusIndicator.style.color = '#28a745';
+            else if (status === 'Paused') statusIndicator.style.color = '#ffc107';
+            else statusIndicator.style.color = '#dc3545';
+        }
+
+        function getConfiguration() {
+            return {
+                max_repositories: parseInt(document.getElementById('maxRepos').value),
+                max_files_per_repo: parseInt(document.getElementById('maxFiles').value),
+                search_delay: parseInt(document.getElementById('searchDelay').value),
+                custom_query: document.getElementById('customQuery').value,
+                confidence_threshold: parseInt(confidenceThreshold.value),
+                analyze_comments: document.getElementById('analyzeComments').checked
+            };
+        }
+
+        function updateProgress() {
+            if (!crawlerActive) return;
+            
+            fetch('/api/crawler/status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('reposFound').textContent = data.repositories_found || 0;
+                    document.getElementById('filesAnalyzed').textContent = data.files_analyzed || 0;
+                    document.getElementById('cgalFilesFound').textContent = data.cgal_files_found || 0;
+                    document.getElementById('requestsMade').textContent = data.requests_made || 0;
+                    
+                    // Update progress bar
+                    const progress = Math.min((data.repositories_found / parseInt(document.getElementById('maxRepos').value)) * 100, 100);
+                    document.getElementById('repositoryProgress').style.width = progress + '%';
+                });
+        }
+
+        function clearLog() {
+            logOutput.textContent = 'Log cleared...';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check initial crawler status
+            fetch('/api/crawler/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.active) {
+                        startCrawler();
+                    }
+                });
+                
+            // Load session history
+            loadSessionHistory();
+            
+            // Update rate limit status
+            updateRateLimit();
+            setInterval(updateRateLimit, 30000); // Update every 30 seconds
+        });
+
+        function updateRateLimit() {
+            fetch('/api/rate-limit')
+                .then(response => response.json())
+                .then(data => {
+                    const remaining = data.remaining || 0;
+                    const rateLimitText = document.getElementById('rateLimitText');
+                    const rateLimitRemaining = document.getElementById('rateLimitRemaining');
+                    const rateLimitStatus = document.getElementById('rateLimitStatus');
+                    
+                    rateLimitRemaining.textContent = remaining;
+                    
+                    if (remaining > 5) {
+                        rateLimitStatus.className = 'rate-limit-indicator rate-limit-ok';
+                        rateLimitText.textContent = 'Good';
+                    } else if (remaining > 2) {
+                        rateLimitStatus.className = 'rate-limit-indicator rate-limit-warning';
+                        rateLimitText.textContent = 'Low';
+                    } else {
+                        rateLimitStatus.className = 'rate-limit-indicator rate-limit-danger';
+                        rateLimitText.textContent = 'Critical';
+                    }
+                });
+        }
+
+        function loadSessionHistory() {
+            fetch('/api/sessions')
+                .then(response => response.json())
+                .then(sessions => {
+                    const tbody = document.getElementById('sessionHistory');
+                    if (sessions.length === 0) return;
+                    
+                    tbody.innerHTML = sessions.map(session => `
+                        <tr>
+                            <td>${session.id}</td>
+                            <td>${new Date(session.start_time).toLocaleString()}</td>
+                            <td>${session.duration || '-'}</td>
+                            <td>${session.repositories_found || 0}</td>
+                            <td>${session.cgal_files_found || 0}</td>
+                            <td>
+                                <span class="badge bg-${session.status === 'completed' ? 'success' : 'warning'}">
+                                    ${session.status}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewSession('${session.id}')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                });
+        }
+
+        function viewSession(sessionId) {
+            window.location.href = `/session/${sessionId}`;
+        }
+    </script>
+</body>
+</html>

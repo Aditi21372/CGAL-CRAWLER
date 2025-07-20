@@ -1,0 +1,70 @@
+{
+  "headers": [
+    "CGAL/Exact_predicates_inexact_constructions_kernel.h",
+    "CGAL/Point_2.h",
+    "CGAL/Point_3.h",
+    "CGAL/Vector_2.h",
+    "CGAL/Vector_3.h",
+    "CGAL/Polygon_2.h",
+    "CGAL/Polyhedron_3.h",
+    "CGAL/Surface_mesh.h",
+    "CGAL/Delaunay_triangulation_2.h",
+    "CGAL/Delaunay_triangulation_3.h",
+    "CGAL/Triangulation_2.h",
+    "CGAL/Triangulation_3.h",
+    "CGAL/Voronoi_diagram_2.h",
+    "CGAL/Boolean_set_operations_2.h",
+    "CGAL/Polygon_set_2.h",
+    "CGAL/convex_hull_2.h",
+    "CGAL/convex_hull_3.h",
+    "CGAL/Alpha_shape_2.h",
+    "CGAL/Alpha_shape_3.h",
+    "CGAL/Arrangement_2.h",
+    "CGAL/Simple_cartesian.h",
+    "CGAL/Cartesian.h",
+    "CGAL/Homogeneous.h",
+    "CGAL/basic.h",
+    "CGAL/number_utils.h",
+    "CGAL/Polygon_mesh_processing/triangulate_faces.h",
+    "CGAL/Polygon_mesh_processing/repair.h"
+  ],
+  "namespaces": [
+    "using namespace CGAL",
+    "CGAL::",
+    "namespace CGAL"
+  ],
+  "search_patterns": [
+    "#include\\s*[<\\\"]\\s*CGAL/",
+    "CGAL::\\w+",
+    "using\\s+namespace\\s+CGAL",
+    "typedef\\s+CGAL::",
+    "CGAL::\\w+\\s*<",
+    "CGAL_\\w+"
+  ],
+  "common_types": [
+    "Point_2",
+    "Point_3",
+    "Vector_2",
+    "Vector_3",
+    "Polygon_2",
+    "Triangle_2",
+    "Triangle_3",
+    "Segment_2",
+    "Segment_3",
+    "Line_2",
+    "Line_3",
+    "Plane_3",
+    "Surface_mesh",
+    "Polyhedron_3"
+  ],
+  "algorithms": [
+    "convex_hull",
+    "Delaunay_triangulation",
+    "Voronoi_diagram",
+    "Boolean_set_operations",
+    "Alpha_shape",
+    "minkowski_sum",
+    "intersection",
+    "do_intersect"
+  ]
+}

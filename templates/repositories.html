@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CGAL Repositories - CGAL GitHub Crawler</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism.min.css" rel="stylesheet">
+    <style>
+        .repository-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            border-left: 4px solid transparent;
+        }
+        .repository-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .repo-high-cgal { border-left-color: #28a745; }
+        .repo-medium-cgal { border-left-color: #ffc107; }
+        .repo-low-cgal { border-left-color: #17a2b8; }
+        
+        .cgal-confidence {
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .confidence-high { color: #28a745; }
+        .confidence-medium { color: #ffc107; }
+        .confidence-low { color: #17a2b8; }
+        
+        .code-preview {
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.9em;
+        }
+        
+        .cgal-pattern-tag {
+            font-size: 0.75em;
+            margin: 1px;
+        }
+        
+        .file-analysis {
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        
+        .search-filters {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        
+        .domain-badge {
+            font-size: 0.8em;
+            margin: 2px;
+        }
+        
+        .repo-metadata {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        
+        .pagination-container {
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-search me-2"></i>CGAL Crawler
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Dashboard</a>
+                <a class="nav-link" href="/crawler">Crawler Control</a>
+                <a class="nav-link active" href="/repositories">Repositories</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>
+                        <i class="fas fa-code-branch me-2"></i>CGAL Repositories
+                        <span class="badge bg-primary ms-2" id="totalCount">0</span>
+                    </h1>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" id="refreshBtn">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                        <button type="button" class="btn btn-outline-success" id="exportBtn">
+                            <i class="fas fa-download me-1"></i>Export CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Overview -->
+        <div class="row mb-4">
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-code-branch fa-2x mb-2"></i>
+                        <h4 class="mb-0" id="totalRepositories">0</h4>
+                        <small>Total Repositories</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-file-code fa-2x mb-2"></i>
+                        <h4 class="mb-0" id="totalCgalFiles">0</h4>
+                        <small>CGAL Files Found</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-star fa-2x mb-2"></i>
+                        <h4 class="mb-0" id="averageStars">0</h4>
+                        <small>Average Stars</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card bg-warning text-dark">
+                    <div class="card-body text-center">
+                        <i class="fas fa-calendar fa-2x mb-2"></i>
+                        <h4 class="mb-0" id="recentRepos">0</h4>
+                        <small>Updated This Month</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filters -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card search-filters">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg-4 mb-3">
+                                <label for="searchInput" class="form-label">Search Repositories</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="searchInput" 
+                                           placeholder="Search by name, description, or CGAL patterns...">
+                                </div>
+                            </div>
+                            <div class="col-lg-2 mb-3">
+                                <label for="confidenceFilter" class="form-label">Min Confidence</label>
+                                <select class="form-select" id="confidenceFilter">
+                                    <option value="0">All Levels</option>
+                                    <option value="0.3">Low (30%+)</option>
+                                    <option value="0.6">Medium (60%+)</option>
+                                    <option value="0.8">High (80%+)</option>
+                                </select>
+                            </div>
+                            <div class="col-lg-2 mb-3">
+                                <label for="languageFilter" class="form-label">Language</label>
+                                <select class="form-select" id="languageFilter">
+                                    <option value="">All Languages</option>
+                                    <option value="C++">C++</option>
+                                    <option value="C">C</option>
+                                    <option value="CMake">CMake</option>
+                                    <option value="Python">Python</option>
+                                </select>
+                            </div>
+                            <div class="col-lg-2 mb-3">
+                                <label for="sortBy" class="form-label">Sort By</label>
+                                <select class="form-select" id="sortBy">
+                                    <option value="confidence">CGAL Confidence</option>
+                                    <option value="stars">GitHub Stars</option>
+                                    <option value="updated">Last Updated</option>
+                                    <option value="created">Date Created</option>
+                                    <option value="name">Repository Name</option>
+                                </select>
+                            </div>
+                            <div class="col-lg-2 mb-3">
+                                <label for="sortOrder" class="form-label">Order</label>
+                                <select class="form-select" id="sortOrder">
+                                    <option value="desc">Descending</option>
+                                    <option value="asc">Ascending</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="button" class="btn btn-primary me-2" id="applyFiltersBtn">
+                                    <i class="fas fa-filter me-1"></i>Apply Filters
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="clearFiltersBtn">
+                                    <i class="fas fa-times me-1"></i>Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Repository Listings -->
+        <div class="row" id="repositoryContainer">
+            <!-- Repository cards will be dynamically loaded here -->
+        </div>
+
+        <!-- Loading Indicator -->
+        <div class="row" id="loadingIndicator" style="display: none;">
+            <div class="col-12 text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading repositories...</p>
+            </div>
+        </div>
+
+        <!-- No Results -->
+        <div class="row" id="noResults" style="display: none;">
+            <div class="col-12 text-center py-4">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No repositories found</h4>
+                <p class="text-muted">Try adjusting your search criteria or filters.</p>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-container d-flex justify-content-center" id="paginationContainer">
+            <!-- Pagination will be dynamically generated -->
+        </div>
+    </div>
+
+    <!-- Repository Detail Modal -->
+    <div class="modal fade" id="repositoryModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-code-branch me-2"></i>
+                        <span id="modalRepoName">Repository Details</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalContent">
+                    <!-- Dynamic content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script>
+        // Global variables
+        let repositories = [];
+        let filteredRepositories = [];
+        let currentPage = 1;
+        const itemsPerPage = 12;
+
+        // DOM Elements
+        const repositoryContainer = document.getElementById('repositoryContainer');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const noResults = document.getElementById('noResults');
+        const searchInput = document.getElementById('searchInput');
+        const confidenceFilter = document.getElementById('confidenceFilter');
+        const languageFilter = document.getElementById('languageFilter');
+        const sortBy = document.getElementById('sortBy');
+        const sortOrder = document.getElementById('sortOrder');
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', loadRepositories);
+        document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+        document.getElementById('clearFiltersBtn').addEventListener('click', clearFilters);
+        document.getElementById('refreshBtn').addEventListener('click', loadRepositories);
+        document.getElementById('exportBtn').addEventListener('click', exportData);
+        searchInput.addEventListener('input', debounce(applyFilters, 500));
+
+        // Load repositories from API
+        function loadRepositories() {
+            showLoading(true);
+            
+            fetch('/api/repositories')
+                .then(response => response.json())
+                .then(data => {
+                    repositories = data;
+                    updateStatistics();
+                    applyFilters();
+                })
+                .catch(error => {
+                    console.error('Error loading repositories:', error);
+                    showError('Failed to load repositories. Please try again.');
+                })
+                .finally(() => {
+                    showLoading(false);
+                });
+        }
+
+        // Update statistics display
+        function updateStatistics() {
+            document.getElementById('totalRepositories').textContent = repositories.length;
+            document.getElementById('totalCgalFiles').textContent = 
+                repositories.reduce((sum, repo) => sum + (repo.cgal_files_count || 0), 0);
+            document.getElementById('averageStars').textContent = 
+                Math.round(repositories.reduce((sum, repo) => sum + (repo.stars || 0), 0) / repositories.length) || 0;
+            
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            document.getElementById('recentRepos').textContent = 
+                repositories.filter(repo => new Date(repo.updated_at) > oneMonthAgo).length;
+        }
+
+        // Apply search and filter criteria
+        function applyFilters() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const minConfidence = parseFloat(confidenceFilter.value);
+            const language = languageFilter.value;
+            const sortField = sortBy.value;
+            const order = sortOrder.value;
+
+            filteredRepositories = repositories.filter(repo => {
+                // Search filter
+                const matchesSearch = !searchTerm || 
+                    repo.name.toLowerCase().includes(searchTerm) ||
+                    (repo.description && repo.description.toLowerCase().includes(searchTerm)) ||
+                    (repo.cgal_patterns && repo.cgal_patterns.some(pattern => 
+                        pattern.toLowerCase().includes(searchTerm)));
+
+                // Confidence filter
+                const matchesConfidence = repo.cgal_confidence >= minConfidence;
+
+                // Language filter
+                const matchesLanguage = !language || repo.language === language;
+
+                return matchesSearch && matchesConfidence && matchesLanguage;
+            });
+
+            // Sort results
+            filteredRepositories.sort((a, b) => {
+                let valueA, valueB;
+                
+                switch (sortField) {
+                    case 'confidence':
+                        valueA = a.cgal_confidence || 0;
+                        valueB = b.cgal_confidence || 0;
+                        break;
+                    case 'stars':
+                        valueA = a.stars || 0;
+                        valueB = b.stars || 0;
+                        break;
+                    case 'updated':
+                        valueA = new Date(a.updated_at);
+                        valueB = new Date(b.updated_at);
+                        break;
+                    case 'created':
+                        valueA = new Date(a.created_at);
+                        valueB = new Date(b.created_at);
+                        break;
+                    case 'name':
+                        valueA = a.name.toLowerCase();
+                        valueB = b.name.toLowerCase();
+                        break;
+                    default:
+                        return 0;
+                }
+
+                if (order === 'asc') {
+                    return valueA > valueB ? 1 : -1;
+                } else {
+                    return valueA < valueB ? 1 : -1;
+                }
+            });
+
+            document.getElementById('totalCount').textContent = filteredRepositories.length;
+            currentPage = 1;
+            renderRepositories();
+            renderPagination();
+        }
+
+        // Render repository cards
+        function renderRepositories() {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageRepositories = filteredRepositories.slice(startIndex, endIndex);
+
+            if (pageRepositories.length === 0) {
+                repositoryContainer.innerHTML = '';
+                noResults.style.display = 'block';
+                return;
+            }
+
+            noResults.style.display = 'none';
+            repositoryContainer.innerHTML = pageRepositories.map(repo => createRepositoryCard(repo)).join('');
+        }
+
+        // Create repository card HTML
+        function createRepositoryCard(repo) {
+            const confidence = repo.cgal_confidence || 0;
+            const confidenceClass = confidence >= 0.8 ? 'high' : confidence >= 0.6 ? 'medium' : 'low';
+            const cardClass = confidence >= 0.8 ? 'repo-high-cgal' : confidence >= 0.6 ? 'repo-medium-cgal' : 'repo-low-cgal';
+            
+            const patterns = repo.cgal_patterns || [];
+            const domains = repo.cgal_domains || [];
+            
+            return `
+                <div class="col-lg-6 col-xl-4 mb-4">
+                    <div class="card repository-card h-100 ${cardClass}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title mb-0">
+                                    <a href="${repo.html_url}" target="_blank" class="text-decoration-none">
+                                        ${repo.name}
+                                    </a>
+                                </h6>
+                                <div class="cgal-confidence confidence-${confidenceClass}">
+                                    ${Math.round(confidence * 100)}%
+                                </div>
+                            </div>
+                            
+                            <p class="card-text text-muted small mb-2">
+                                ${repo.description || 'No description available'}
+                            </p>
+                            
+                            <div class="repo-metadata mb-2">
+                                <small class="me-3">
+                                    <i class="fas fa-star text-warning"></i> ${repo.stars || 0}
+                                </small>
+                                <small class="me-3">
+                                    <i class="fas fa-code-branch"></i> ${repo.forks || 0}
+                                </small>
+                                <small class="me-3">
+                                    <i class="fas fa-circle text-primary"></i> ${repo.language || 'Unknown'}
+                                </small>
+                                <small>
+                                    <i class="fas fa-clock"></i> ${formatDate(repo.updated_at)}
+                                </small>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <small class="text-muted">CGAL Files: </small>
+                                <span class="badge bg-success">${repo.cgal_files_count || 0}</span>
+                            </div>
+                            
+                            ${domains.length > 0 ? `
+                                <div class="mb-2">
+                                    ${domains.slice(0, 3).map(domain => 
+                                        `<span class="badge bg-info domain-badge">${domain}</span>`
+                                    ).join('')}
+                                    ${domains.length > 3 ? `<span class="badge bg-secondary domain-badge">+${domains.length - 3}</span>` : ''}
+                                </div>
+                            ` : ''}
+                            
+                            ${patterns.length > 0 ? `
+                                <div class="mb-3">
+                                    <small class="text-muted d-block mb-1">Detected Patterns:</small>
+                                    ${patterns.slice(0, 4).map(pattern => 
+                                        `<span class="badge bg-light text-dark cgal-pattern-tag">${pattern}</span>`
+                                    ).join('')}
+                                    ${patterns.length > 4 ? `<span class="badge bg-secondary cgal-pattern-tag">+${patterns.length - 4}</span>` : ''}
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="card-footer bg-transparent">
+                            <div class="d-flex justify-content-between">
+                                <button class="btn btn-outline-primary btn-sm" onclick="viewRepository('${repo.id}')">
+                                    <i class="fas fa-eye me-1"></i>View Details
+                                </button>
+                                <a href="${repo.html_url}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fab fa-github me-1"></i>GitHub
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render pagination
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredRepositories.length / itemsPerPage);
+            const paginationContainer = document.getElementById('paginationContainer');
+            
+            if (totalPages <= 1) {
+                paginationContainer.innerHTML = '';
+                return;
+            }
+            
+            let paginationHTML = '<nav><ul class="pagination">';
+            
+            // Previous button
+            paginationHTML += `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <button class="page-link" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                </li>
+            `;
+            
+            // Page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <button class="page-link" onclick="changePage(${i})">${i}</button>
+                    </li>
+                `;
+            }
+            
+            // Next button
+            paginationHTML += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <button class="page-link" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </li>
+            `;
+            
+            paginationHTML += '</ul></nav>';
+            paginationContainer.innerHTML = paginationHTML;
+        }
+
+        // Change page
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredRepositories.length / itemsPerPage);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderRepositories();
+                renderPagination();
+                window.scrollTo(0, 0);
+            }
+        }
+
+        // View repository details
+        function viewRepository(repoId) {
+            const repo = repositories.find(r => r.id === repoId);
+            if (!repo) return;
+
+            document.getElementById('modalRepoName').textContent = repo.name;
+            
+            // Load detailed repository information
+            fetch(`/api/repositories/${repoId}/details`)
+                .then(response => response.json())
+                .then(data => {
+                    renderRepositoryDetails(data);
+                    new bootstrap.Modal(document.getElementById('repositoryModal')).show();
+                });
+        }
+
+        // Render repository details in modal
+        function renderRepositoryDetails(repo) {
+            const modalContent = document.getElementById('modalContent');
+            modalContent.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Repository Information</h6>
+                        <table class="table table-sm">
+                            <tr><td>Name:</td><td>${repo.name}</td></tr>
+                            <tr><td>Owner:</td><td>${repo.owner}</td></tr>
+                            <tr><td>Language:</td><td>${repo.language || 'N/A'}</td></tr>
+                            <tr><td>Stars:</td><td>${repo.stars || 0}</td></tr>
+                            <tr><td>Forks:</td><td>${repo.forks || 0}</td></tr>
+                            <tr><td>Created:</td><td>${formatDate(repo.created_at)}</td></tr>
+                            <tr><td>Updated:</td><td>${formatDate(repo.updated_at)}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>CGAL Analysis</h6>
+                        <table class="table table-sm">
+                            <tr><td>Confidence:</td><td>${Math.round((repo.cgal_confidence || 0) * 100)}%</td></tr>
+                            <tr><td>CGAL Files:</td><td>${repo.cgal_files_count || 0}</td></tr>
+                            <tr><td>Total Files Analyzed:</td><td>${repo.total_files || 0}</td></tr>
+                            <tr><td>Patterns Detected:</td><td>${(repo.cgal_patterns || []).length}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                
+                ${(repo.cgal_files || []).length > 0 ? `
+                    <h6 class="mt-4">CGAL Files Found</h6>
+                    ${repo.cgal_files.map(file => `
+                        <div class="file-analysis">
+                            <div class="d-flex justify-content-between align-items-center p-2 bg-light">
+                                <strong>${file.filename}</strong>
+                                <span class="badge bg-primary">${Math.round((file.confidence || 0) * 100)}% confidence</span>
+                            </div>
+                            <div class="p-2">
+                                <div class="mb-2">
+                                    <small class="text-muted">Patterns:</small>
+                                    ${(file.patterns || []).map(pattern => 
+                                        `<span class="badge bg-secondary ms-1">${pattern}</span>`
+                                    ).join('')}
+                                </div>
+                                ${file.code_snippet ? `
+                                    <div class="code-preview">
+                                        <pre class="m-0 p-2"><code class="language-cpp">${file.code_snippet}</code></pre>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                ` : ''}
+            `;
+            
+            // Re-run syntax highlighting
+            Prism.highlightAll();
+        }
+
+        // Utility functions
+        function clearFilters() {
+            searchInput.value = '';
+            confidenceFilter.value = '0';
+            languageFilter.value = '';
+            sortBy.value = 'confidence';
+            sortOrder.value = 'desc';
+            applyFilters();
+        }
+
+        function showLoading(show) {
+            loadingIndicator.style.display = show ? 'block' : 'none';
+            repositoryContainer.style.display = show ? 'none' : 'block';
+        }
+
+        function showError(message) {
+            repositoryContainer.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        ${message}
+                    </div>
+                </div>
+            `;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            return new Date(dateString).toLocaleDateString();
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function exportData() {
+            const exportButton = document.getElementById('exportBtn');
+            exportButton.disabled = true;
+            exportButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+            
+            fetch('/api/repositories/export')
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `cgal_repositories_${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                })
+                .finally(() => {
+                    exportButton.disabled = false;
+                    exportButton.innerHTML = '<i class="fas fa-download me-1"></i>Export CSV';
+                });
+        }
+    </script>
+</body>
+</html>

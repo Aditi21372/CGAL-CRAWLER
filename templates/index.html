@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - CGAL GitHub Crawler{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>
+            <i class="fas fa-dashboard"></i>
+            CGAL GitHub Crawler Dashboard
+        </h1>
+        <p class="text-muted">Discover and analyze C++ projects using the CGAL computational geometry library.</p>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card success h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-folder fa-2x text-success"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1">{{ stats.get('total_repositories', 0) }}</h4>
+                        <p class="text-muted mb-0">Repositories</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card info h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-file-code fa-2x text-info"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1">{{ stats.get('total_files', 0) }}</h4>
+                        <p class="text-muted mb-0">Total Files</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card warning h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-code fa-2x text-warning"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1">{{ stats.get('cgal_files', 0) }}</h4>
+                        <p class="text-muted mb-0">CGAL Files</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card {% if crawler_running %}success{% else %}danger{% endif %} h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-robot fa-2x {% if crawler_running %}text-success{% else %}text-danger{% endif %}"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-1 {% if crawler_running %}status-running{% else %}status-stopped{% endif %}">
+                            {% if crawler_running %}RUNNING{% else %}STOPPED{% endif %}
+                        </h6>
+                        <p class="text-muted mb-0">Crawler Status</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Repositories -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-star"></i>
+                    Top Repositories by Stars
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if repositories %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Repository</th>
+                                    <th>Description</th>
+                                    <th>Language</th>
+                                    <th>Stars</th>
+                                    <th>CGAL Files</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for repo in repositories %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ repo.html_url }}" target="_blank" class="text-decoration-none">
+                                            <i class="fab fa-github"></i>
+                                            {{ repo.full_name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <small>{{ (repo.description or '')[:100] }}{% if repo.description and repo.description|length > 100 %}...{% endif %}</small>
+                                    </td>
+                                    <td>
+                                        {% if repo.language %}
+                                            <span class="badge bg-secondary">{{ repo.language }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-star text-warning"></i>
+                                        {{ repo.stars }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ repo.cgal_files_count or 0 }}</span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('repository_detail', repo_id=repo.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                            View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('repositories') }}" class="btn btn-primary">
+                            <i class="fas fa-list"></i>
+                            View All Repositories
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h5>No repositories found</h5>
+                        <p class="text-muted">Start the crawler to begin discovering CGAL repositories.</p>
+                        <a href="{{ url_for('crawler_control') }}" class="btn btn-primary">
+                            <i class="fas fa-robot"></i>
+                            Start Crawler
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if error %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i>
+            Error: {{ error }}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Auto-refresh stats if crawler is running
+{% if crawler_running %}
+setInterval(function() {
+    // Refresh page to update stats
+    // In a production app, you would use AJAX to update just the stats
+    window.location.reload();
+}, 30000); // Refresh every 30 seconds
+{% endif %}
+</script>
+{% endblock %}

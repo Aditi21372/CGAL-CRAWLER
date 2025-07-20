@@ -1,0 +1,20 @@
+# Create requirements.txt file
+requirements_content = """requests>=2.31.0
+PyGithub>=1.59.0
+Flask>=2.3.3
+python-dotenv>=1.0.0
+beautifulsoup4>=4.12.2
+pandas>=2.0.0
+sqlite3-utils>=0.34
+regex>=2023.6.3
+colorama>=0.4.6
+tqdm>=4.65.0
+gunicorn>=21.2.0
+"""
+
+with open("cgal-github-crawler/requirements.txt", "w") as f:
+    f.write(requirements_content)
+
+print("requirements.txt created!")
+print("Contents:")
+print(requirements_content)
