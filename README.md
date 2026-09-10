@@ -1,5 +1,7 @@
 # CGAL GitHub Crawler
 
+![CI](https://github.com/Aditi21372/CGAL-CRAWLER/actions/workflows/ci.yml/badge.svg) ![License](https://img.shields.io/badge/License-MIT-green)
+
 > A research data-collection pipeline that **crawls GitHub for C++ repositories using the CGAL library**, analyzes exactly *how* it's used, stores findings in SQLite, and surfaces everything through a Flask dashboard.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)
