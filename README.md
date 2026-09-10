@@ -9,13 +9,13 @@
 
 ## Why
 
-CGAL (Computational Geometry Algorithms Library) is widely used but poorly instrumented — there's no easy way to answer questions like *which CGAL headers do real projects rely on most?* or *how is the library actually adopted in the wild?* This tool collects that evidence at scale.
+CGAL (Computational Geometry Algorithms Library) is widely used but poorly instrumented: there's no easy way to answer questions like *which CGAL headers do real projects rely on most?* or *how is the library actually adopted in the wild?* This tool collects that evidence at scale.
 
 ## What it does
 
 - 🔍 **Searches GitHub** (via PyGithub) for C++ repositories containing CGAL usage
-- 🧠 **Pattern-analyzes** every candidate file against a configurable ruleset — `cgal_patterns.json` — of known CGAL headers (`Delaunay_triangulation_2.h`, `convex_hull_3.h`, `Surface_mesh.h`, …) and namespace patterns
-- ⏱️ **Respects the API** — token-bucket style rate limiting, configurable request spacing, bounded concurrency, and graceful handling of `RateLimitExceededException`
+- 🧠 **Pattern-analyzes** every candidate file against a configurable ruleset (`cgal_patterns.json`) of known CGAL headers (`Delaunay_triangulation_2.h`, `convex_hull_3.h`, `Surface_mesh.h`, …) and namespace patterns
+- ⏱️ **Respects the API**: token-bucket style rate limiting, configurable request spacing, bounded concurrency, and graceful handling of `RateLimitExceededException`
 - 💾 **Persists** repository, file, and pattern stats in SQLite via a `DatabaseManager`
 - 📊 **Dashboards** it all in a Flask web UI: crawl controls, live stats, and per-repository drill-down
 
@@ -55,7 +55,7 @@ Everything is environment-driven (see `.env.example`):
 
 | Variable                  | Default            | Purpose                              |
 |---------------------------|--------------------|--------------------------------------|
-| `GITHUB_TOKEN`            | — (required)       | Personal access token for the API    |
+| `GITHUB_TOKEN`            |: (required)       | Personal access token for the API    |
 | `MAX_REQUESTS_PER_MINUTE` | `10`               | Rate-limit ceiling                   |
 | `MAX_REPOSITORIES`        | `100`              | Crawl breadth                        |
 | `MAX_FILES_PER_REPO`      | `50`               | Crawl depth per repository           |
